@@ -98,7 +98,7 @@ $result=$stmt->execute(['id'=>$kontrolleratId]);
  */
 function sparaNyAktivitet(string $aktivitet): Response {
     //kontrollera indata - rensa bort onödiga tecken
-$kontrolleradAktivitet=filter_var($aktivitet, FILTER_SANITIZE_ENCODED);
+$kontrolleradAktivitet=filter_var($aktivitet, FILTER_SANITIZE_SPECIAL_CHARS);
 //kontrollerar att aktiviteten inte är tom
 if(trim($aktivitet)===''){
     $retur=new stdClass();
@@ -129,7 +129,7 @@ if(trim($aktivitet)===''){
     $retur->error = ['Bad request', 'fel vid spara', $e->getMessage()];
     return new response($retur, 400);
 }
-}
+} 
 
 /**
  * Uppdaterar angivet id med ny text
@@ -138,8 +138,44 @@ if(trim($aktivitet)===''){
  * @return Response
  */
 function uppdateraAktivitet(string $id, string $aktivitet): Response {
+//kontrollera indata
+$kontrolleratId= filter_var($id, FILTER_VALIDATE_INT);
+$kontrolleradAktivitet= filter_var($aktivitet, FILTER_SANITIZE_SPECIAL_CHARS);
+$kontrolleradAktivitet=trim($kontrolleradAktivitet);
+
+if($kontrolleratId===false || $kontrolleratId<1
+        || $kontrolleradAktivitet==='') {
+            $retur=new stdClass();
+            $retur->error=['bad request','felaktig indata till uppdatera aktivitet'];
+            return new response($retur, 400);
+        }
+        try {
+//koppla databas
+$db=connectDb();
+//förbereda fråga
+$stmt=$db->prepare("UPDATE aktiviteter SET namn=:aktivitet WHERE id=:id");
+$stmt->execute(['aktivitet'=>$kontrolleradAktivitet, 'id'=>$kontrolleratId]);
+
+//hantera svar
+if($stmt->rowCount()===1) {
+    $retur=new stdClass();
+    $retur->result=true;
+    $retur->message=['Uppdatera aktivitet lyckades', '1 rad uppdaterad'];
+    return new response($retur);
+} else {
+    $retur=new stdClass();
+    $retur->result=false;
+    $retur->message=['uppdatera aktivitet misslyckades', 'ingen rad uppdaterades'];
+    return new response($retur);
 }
 
+} catch (Exception $e) {
+    $retur= new stdClass();
+    $retur->error=['bad request', 'något gick fel vid databasanropet'
+    , $e->getMessage()];
+    return new Response($retur, 400);
+}
+}
 /**
  * Raderar en aktivitet med angivet id
  * @param string $id Id för posten som ska raderas
