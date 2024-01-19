@@ -71,6 +71,38 @@ function hamtaEnskildAktivitet(string $id): Response {
  * @return Response
  */
 function sparaNyAktivitet(string $aktivitet): Response {
+    //kontrollera indata - rensa bort onödiga tecken
+$kontrolleradAktivitet=filter_var($aktivitet, FILTER_SANITIZE_ENCODED);
+//kontrollerar att aktiviteten inte är tom
+if(trim($aktivitet)===''){
+    $retur=new stdClass();
+    $retur->error=['Bad request', 'aktivitet får inte vara tom'];
+    return new response($retur, 400);
+}
+
+    try {
+//koppla mot databasen 
+    $db=connectDb();
+    //exekvera frågan
+    $stmt=$db->prepare("INSERT INTO aktiviteter (namn) values (:aktiviteter)");
+    $svar=$stmt->execute(['aktiviteter'=>$kontrolleradAktivitet]);
+
+    //kontrollera svaret och returnerar svaret
+    if ($svar===true) {
+        $retur=new stdClass();
+        $retur->id=$db->lastInsertId();
+        $retur->meddelande = ['Spara lyckades', '1 post lades till'];
+        return new response($retur);
+    } else {
+        $retur=new stdClass();
+        $retur->error=['Bad request', 'något gickfel vid spara'];
+        return new response($retur, 400);
+    }
+}catch (exception $e){
+    $retur=new stdClass();
+    $retur->error = ['Bad request', 'fel vid spara', $e->getMessage()];
+    return new response($retur, 400);
+}
 }
 
 /**
