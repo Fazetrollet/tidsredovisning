@@ -63,7 +63,33 @@ function hamtaAllaAktiviteter(): Response {
  * @return Response
  */
 function hamtaEnskildAktivitet(string $id): Response {
+    //kontrollera inparameter
+    $kontrolleratId= filter_var($id, FILTER_VALIDATE_INT);
+
+    if($kontrolleratId=== false || $kontrolleratId<1) {
+        $retur=new stdClass();
+        $retur->error=['bad request', 'ogiltigt id'];
+        return new response($retur, 400);
+    }
+    //koppla mot databsen  
+    $db= connectDb();
+
+    //skicka fråga
+$stmt=$db->prepare("SELECT id, namn FROM aktiviteter WHERE id=:id");
+$result=$stmt->execute(['id'=>$kontrolleratId]);
+    //kontrollera svar
+    if($row=$stmt->fetch(PDO::FETCH_ASSOC)) {
+        $retur=new stdClass();
+        $retur->id=$row['id'];
+        $retur->activity=$row['namn'];
+        return new Response($retur);
+    } else {
+        $retur=new stdClass();
+        $retur->error=['Bad request', "angivet id ($kontrolleratId) finns inte"];
+        return new response($retur, 400);
+    }
 }
+
 
 /**
  * Lagrar en ny aktivitet i databasen
