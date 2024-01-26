@@ -73,7 +73,6 @@ if($svar->getStatus()===200) {
 
 
 
-        $retur .= "<p class='error'>Inga tester implementerade</p>";
     } catch (Exception $ex) {
         $retur .= "<p class='error'>Något gick fel, meddelandet säger:<br> {$ex->getMessage()}</p>";
     }
@@ -175,9 +174,80 @@ function test_HamtaEnUppgift(): string {
     $retur = "<h2>test_HamtaEnUppgift</h2>";
 
     try {
-        $retur .= "<p class='error'>Inga tester implementerade</p>";
+       //misslyckades med att hämta id=0
+       $svar= hamtaEnskildUppgift("0");
+       if($svar->getStatus()===400) {
+        $retur .="<p class='ok'>misslyckades hämta uppgift med id=0, som förväntat";
+    } else {
+        $retur .="<p class'error'>misslyckades med att hämta uppgift med id=0<br>"
+        . $svar->getStatus(). " returnerades istället för förväntat 400<br>"
+        . print_r($svar->getContent(), true) . "</p>";
+       }
+        //misslyckades med att hämta id=sju
+        $svar= hamtaEnskildUppgift("sju");
+        if($svar->getStatus()===400) {
+         $retur .="<p class='ok'>misslyckades hämta uppgift med id=sju, som förväntat";
+     } else {
+         $retur .="<p class'error'>misslyckades med att hämta uppgift med id=sju<br>"
+         . $svar->getStatus(). " returnerades istället för förväntat 400<br>"
+         . print_r($svar->getContent(), true) . "</p>";
+        }
+        //misslyckades med att hämta id=3.14
+        $svar= hamtaEnskildUppgift("3.14");
+        if($svar->getStatus()===400) {
+         $retur .="<p class='ok'>misslyckades hämta uppgift med id=3.14, som förväntat";
+     } else {
+         $retur .="<p class'error'>misslyckades med att hämta uppgift med id=3.14<br>"
+         . $svar->getStatus(). " returnerades istället för förväntat 400<br>"
+         . print_r($svar->getContent(), true) . "</p>";
+        }
+    /*
+    * lyckats med att hämta id som finns
+    */
+    //koppla databas
+    $db=connectDb();
+    $db->beginTransaction();
+
+    //förbered data post
+    $content=hamtaAllaAktiviteter()->getContent();
+        $aktiviteter=$content['activities'];
+       $aktivitetId=$aktiviteter[0]->id;
+    $postdata=["date"=> date('Y-m-d'),
+        "time"=>"01:00",
+        "description"=>"Testpost",
+        "activityId"=>"$aktivitetId" ];
+
+        //skapa post
+        $svar= sparaNyUppgift($postdata);
+        $taskId=$svar->getContent()->id;
+
+        //hämta nyss skapad post
+        $svar= hamtaEnskildUppgift("$taskId");
+        if($svar->getStatus()===200) {
+         $retur .="<p class='ok'>lyckades hämta en uppgift";
+     } else {
+         $retur .="<p class'error'>misslyckades hämta nyskapad uppgift<br>"
+         . $svar->getStatus(). " returnerades istället för förväntat 400<br>"
+         . print_r($svar->getContent(), true) . "</p>";
+        }
+
+        //misslyckas med att hämta id som inte finns
+        $taskId++;
+ $svar= hamtaEnskildUppgift("$taskId");
+        if($svar->getStatus()===400) {
+         $retur .="<p class='ok'>misslyckades med att hämta en uppgift som inte finns";
+     } else {
+         $retur .="<p class'error'>misslyckades hämta uppgift som inte finns<br>"
+         . $svar->getStatus(). " returnerades istället för förväntat 400<br>"
+         . print_r($svar->getContent(), true) . "</p>";
+     }
+
     } catch (Exception $ex) {
         $retur .= "<p class='error'>Något gick fel, meddelandet säger:<br> {$ex->getMessage()}</p>";
+    } finally {
+        if($db) {
+            $db->rollBack();
+        }
     }
 
     return $retur;
@@ -268,6 +338,36 @@ function test_KontrolleraIndata(): string {
     $retur = "<h2>test_KontrolleraIndata</h2>";
 
     try {
+ 
+      $grejer = [
+        'date' => '2023-12-31',
+        'time' => '08:00',
+        'activityId' => '1',
+    ];
+    $result = kontrolleraIndata($grejer);
+    if (count($result) === 0) {
+        $retur .= "<p class='ok'></p>";
+    } else {
+        $retur .= "<p class='error'>Test case 1 failed: Valid input</p>";
+    }
+
+    
+    $invalidgrejer = [
+        'date' => '31-12-2023',
+        'time' => '08:00',
+        'activityId' => '1',
+    ];
+    $result = kontrolleraIndata($invalidgrejer);
+    if (count($result) === 1 && strpos($result[0], 'ogiltigt formaterat datum') !== false) {
+        $retur .= "<p class='ok'>Test case 2 passed: Invalid date format</p>";
+    } else {
+        $retur .= "<p class='error'>Test case 2 failed: Invalid date format</p>";
+    }
+
+
+
+
+
         $retur .= "<p class='error'>Inga tester implementerade</p>";
     } catch (Exception $ex) {
         $retur .= "<p class='error'>Något gick fel, meddelandet säger:<br> {$ex->getMessage()}</p>";

@@ -177,7 +177,41 @@ foreach($result as $row){
  * @return Response
  */
 function hamtaEnskildUppgift(string $id): Response {
-    
+        //kontrollera indata
+        $kontrolleratId= filter_var($id, FILTER_VALIDATE_INT);
+        if(!$kontrolleratId) {
+            $retur= new stdClass();
+            $retur->error=['Bad request', 'Felaktigt angivet id'];
+            return new response($retur, 400);
+        }
+
+        if($kontrolleratId && $kontrolleratId<1) {
+            $retur= new stdClass();
+            $retur->error=['Bad request', 'ogiltigt id '];
+            return new response($retur, 400);
+        }
+        //koppla databas
+        $db=connectDb();
+        //exekvera sql
+        $stmt=$db->prepare("SELECT u.id, tid, datum, beskrivning, aktivitetid, namn "
+        . "FROM uppgifter u INNER JOIN aktiviteter a ON aktivitetId=a.id "
+        . "WHERE u.id=:id");
+        $stmt->execute(['id'=>$kontrolleratId]);
+        //returnera svar
+        if($row=$stmt->fetch()) {
+            $retur=new stdClass();
+            $retur->id=$row['id'];
+            $retur->date=$row['datum'];
+            $retur->time=substr($row['tid'],0,-3);
+            $retur->activity=$row['namn'];
+            $retur->activityId=$row['aktivitetid'];
+            return new Response($retur);
+        } else {
+            $retur=new stdClass();
+            $retur->error=['hämta misslyckades', 'kunde inte hitta uppgift med angivet id'];
+            return new Response($retur, 400);
+
+        }
 }
 
 /**
