@@ -257,7 +257,44 @@ $stmt->execute(['datum'=>$postData['date'], 'tid'=>$postData['time'],
  * @return Response
  */
 function uppdateraUppgift(string $id, array $postData): Response {
-    
+    //kontrollera indata
+    $kontrolleratId= filter_var($id, FILTER_VALIDATE_INT);
+    if (!$kontrolleratId) {
+        $retur=new stdClass();
+        $retur->error=['Bad request', "ogiltigt id"];
+        return new Response($retur, 400);
+    }
+    if($kontrolleratId<1) {
+        $retur=new stdClass();
+        $retur->error=['Bad request', "ogiltigt id"];
+    }
+
+    //kontrollera postdata
+    $error= kontrolleraIndata($postData);
+    if(count($error)!==0) {
+        $retur = new stdClass();
+        $retur->error=$error;
+        return new Response($retur, 400);
+    }
+    //koppla databas
+$db=connectDb();
+    //exkevera databasfråga
+$stmt=$db->prepare("UPDATE uppgifter SET "
+. "datum=:date, tid=:time, aktivitetid=:activityId, beskrivning=:description "
+. "WHERE id=:id");
+$stmt->execute(['date'=>$postData['date'], 'time'=>$postData['time'],'activityId'=>$postData['activityId'],
+'description'=>$postData['description'] ??"", 'id'=>$kontrolleratId]);
+    // returnera svar
+    if($stmt->rowCount()===1) {
+        $retur=new stdClass();
+        $retur->result=true;
+        $retur->message=['uppdatering lyckdes', '1 post uppdaterad'];
+    } else {
+        $retur=new stdClass();
+        $retur->result=false;
+        $retur->message=['uppdatering misslyckades', 'ingen post uppdaterade'];
+    }
+    return new response($retur);
 }
 
 /**
