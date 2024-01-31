@@ -430,20 +430,21 @@ function test_KontrolleraIndata(): string {
     try {
  
  //test alla saknas
-  $postdata[];
-  $svar= kontrolleraIndata($postdata);
-  if(count($svar)===3)  {
-    $retur .="<p class='ok'>test alla element saknas lyckades</p>";
- } else {
-     $retur .="<p class'error'>test alla element saknas misslyckades<br>"
-     . $svar->getStatus() . " femeddelnade rapporteras istället för förväntat 3<br>"
-     . print_r($svar, true) . "</p>";
- }
+  //Test alla saknas
+  $postData=[];
+  $svar=kontrolleraIndata($postData);
+  if(count($svar)===3){
+      $retur.="<p class='ok'>Test alla element saknas lyckades</p>";
+  } else {
+      $retur.="<p class='error'>Test alla element saknas misslyckades<br>"
+      . count($svar) . "returnerades istället för förväntat 3<br>"
+      . print_r($svar, true) . "</p>";
+  }
 //test datum finns
-$postdata["date"]=date("Y-m-d");
-$svar= kontrolleraIndata($postdata)
-if(count($svar)===2) 
-{
+$postData["date"]=date("Y-m-d");
+$svar= kontrolleraIndata($postData);
+if(count($svar)===2) {
+
     $retur .="<p class='ok'>test alla element saknas utom datum lyckades</p>";
  } else {
      $retur .="<p class'error'>test alla element utom datum saknas misslyckades<br>"
