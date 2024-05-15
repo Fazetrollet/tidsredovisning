@@ -410,10 +410,6 @@ if($svar->getStatus()===200) {
 //lyckas med beskrivning
 
 
-
-
-
-        $retur .= "<p class='error'>Inga tester implementerade</p>";
     } catch (Exception $ex) {
         $retur .= "<p class='error'>Något gick fel, meddelandet säger:<br> {$ex->getMessage()}</p>";
     } finally {
@@ -424,43 +420,173 @@ if($svar->getStatus()===200) {
 
     return $retur;
 }
-function test_KontrolleraIndata(): string {
-    $retur = "<h2>test_KontrolleraIndata</h2>";
-
-    try {
- 
- //test alla saknas
-  //Test alla saknas
-  $postData=[];
-  $svar=kontrolleraIndata($postData);
-  if(count($svar)===3){
-      $retur.="<p class='ok'>Test alla element saknas lyckades</p>";
-  } else {
-      $retur.="<p class='error'>Test alla element saknas misslyckades<br>"
-      . count($svar) . "returnerades istället för förväntat 3<br>"
-      . print_r($svar, true) . "</p>";
-  }
-//test datum finns
-$postData["date"]=date("Y-m-d");
-$svar= kontrolleraIndata($postData);
-if(count($svar)===2) {
-
-    $retur .="<p class='ok'>test alla element saknas utom datum lyckades</p>";
- } else {
-     $retur .="<p class'error'>test alla element utom datum saknas misslyckades<br>"
-     . $svar->getStatus() . " femeddelnade rapporteras istället för förväntat 2<br>"
-     . print_r($svar, true) . "</p>";
- }
-//test tid finns
-
-
-        $retur .= "<p class='error'>Inga tester implementerade</p>";
-    } catch (Exception $ex) {
-        $retur .= "<p class='error'>Något gick fel, meddelandet säger:<br> {$ex->getMessage()}</p>";
+    function test_KontrolleraIndata(): string {
+        $retur = "<h2>test_KontrolleraIndata</h2>";
+    
+        try {
+            //Test alla saknas
+            $postData=[];
+            $svar=kontrolleraIndata($postData);
+            if(count($svar)===3){
+                $retur.="<p class='ok'>Test alla element saknas lyckades</p>";
+            } else {
+                $retur.="<p class='error'>Test alla element saknas misslyckades<br>"
+                . count($svar) . "returnerades istället för förväntat 3<br>"
+                . print_r($svar, true) . "</p>";
+            }
+    
+            //Test datum finns
+            $postData["date"]=date('Y-m-d');
+            $svar=kontrolleraIndata($postData);
+            if(count($svar)===2){
+                $retur.="<p class='ok'>Test alla element saknas utom datum lyckades</p>";
+            } else {
+                $retur.="<p class='error'>Test alla element saknas utom datum misslyckades<br>"
+                . count($svar) . "returnerades istället för förväntat 3<br>"
+                . print_r($svar, true) . "</p>";
+            }
+    
+            //Test tid finns
+            $postData["time"]="01:00";
+            $svar=kontrolleraIndata($postData);
+            if(count($svar)===1){
+                $retur.="<p class='ok'>Test alla element saknas utom tid och datum lyckades</p>";
+            } else {
+                $retur.="<p class='error'>Test alla element saknas utom tid och datum misslyckades<br>"
+                . count($svar) . "returnerades istället för förväntat 3<br>"
+                . print_r($svar, true) . "</p>";
+            }
+    
+            //Kontrollera datum
+            $content=hamtaAllaAktiviteter()->getContent();
+            $aktiviteter=$content["activities"];
+            $aktivitetId=$aktiviteter[0]->id;
+    
+            $postData=["time"=>"01:00"
+                , "date"=>"imorgon"
+                , "activityId"=>"$aktivitetId"];
+            $svar=kontrolleraIndata($postData);
+            $numFel=count($svar);
+            if($numFel===1) {
+                $retur .="<p class='ok'>Kontroll av ogiltigt angivet datum lyckades</p>";
+            }
+            else {
+                $retur .="<p class='error'>Kontroll av ogiltigt angivet datum misslyckades<br>"
+                . $numFel . " stycken fel returnerades istället för förväntat 1</p>";
+            }
+    
+            $content=hamtaAllaAktiviteter()->getContent();
+            $aktiviteter=$content["activities"];
+            $aktivitetId=$aktiviteter[0]->id;
+    
+            $postData=["time"=>"01:00"
+                , "date"=>"2024/1/1"
+                , "activityId"=>"$aktivitetId"];
+            $svar=kontrolleraIndata($postData);
+            $numFel=count($svar);
+            if($numFel===1) {
+                $retur .="<p class='ok'>Kontroll av felaktigt formaterat datum lyckades</p>";
+            }
+            else {
+                $retur .="<p class='error'>Kontroll av felaktigt formaterat datum misslyckades<br>"
+                . $numFel . " stycken fel returnerades istället för förväntat 1</p>";
+            }
+    
+            $content=hamtaAllaAktiviteter()->getContent();
+            $aktiviteter=$content["activities"];
+            $aktivitetId=$aktiviteter[0]->id;
+    
+            $nextDay=date('Y-m-d', strtotime(date("Y-m-d"). ' +1 day'));
+    
+            $postData=["time"=>"01:00"
+                , "date"=>"$nextDay"
+                , "activityId"=>"$aktivitetId"];
+            $svar=kontrolleraIndata($postData);
+            $numFel=count($svar);
+            if($numFel===1) {
+                $retur .="<p class='ok'>Kontroll av datum framåt i tiden lyckades</p>";
+            }
+            else {
+                $retur .="<p class='error'>Kontroll av datum framåt i tiden misslyckades<br>"
+                . $numFel . " stycken fel returnerades istället för förväntat 1</p>";
+            }
+    
+            //Kontrollera tid
+            $postData=["time"=>"entimme"
+                , "date"=>"2024-01-01"
+                , "activityId"=>"$aktivitetId"];
+            $svar=kontrolleraIndata($postData);
+            $numFel=count($svar);
+            if($numFel===1) {
+                $retur .="<p class='ok'>Kontroll av ogiltigt angiven tid lyckades</p>";
+            }
+            else {
+                $retur .="<p class='error'>Kontroll av ogiltigt angiven tid misslyckades<br>"
+                . $numFel . " stycken fel returnerades istället för förväntat 1</p>";
+            }
+    
+            $postData=["time"=>"01:00:00"
+                , "date"=>"2024-01-01"
+                , "activityId"=>"$aktivitetId"];
+            $svar=kontrolleraIndata($postData);
+            $numFel=count($svar);
+            if($numFel===1) {
+                $retur .="<p class='ok'>Kontroll av felaktigt angiven tid lyckades</p>";
+            }
+            else {
+                $retur .="<p class='error'>Kontroll av felaktigt angiven tid misslyckades<br>"
+                . $numFel . " stycken fel returnerades istället för förväntat 1</p>";
+            }
+    
+            $postData=["time"=>"09:00"
+                , "date"=>"2024-01-01"
+                , "activityId"=>"$aktivitetId"];
+            $svar=kontrolleraIndata($postData);
+            $numFel=count($svar);
+            if($numFel===1) {
+                $retur .="<p class='ok'>Kontroll av tid längre än 8 timmar lyckades</p>";
+            }
+            else {
+                $retur .="<p class='error'>Kontroll av tid längre än 8 timmar misslyckades<br>"
+                . $numFel . " stycken fel returnerades istället för förväntat 1</p>";
+            }
+    
+            //Kontrollera att rätt indata fungerar
+            $postData=["time"=>"01:00"
+                , "date"=>"2024-01-01"
+                , "activityId"=>"$aktivitetId"];
+            $svar=kontrolleraIndata($postData);
+            $numFel=count($svar);
+            if($numFel===0) {
+                $retur .="<p class='ok'>Kontroll av rätt indata lyckades</p>";
+            }
+            else {
+                $retur .="<p class='error'>Kontroll av rätt indata misslyckades<br>"
+                . $numFel . " stycken fel returnerades istället för förväntat 1</p>";
+            }
+    
+            //Kontrollera aktivitetId
+            rsort($aktiviteter);
+            $aktivitetId=$aktiviteter[0]->id+1;
+            $postData=["time"=>"01:00"
+                , "date"=>"2024-01-01"
+                , "activityId"=>"$aktivitetId"];
+            $svar=kontrolleraIndata($postData);
+            $numFel=count($svar);
+            if($numFel===1) {
+                $retur .="<p class='ok'>Kontroll av id som inte finns lyckades</p>";
+            }
+            else {
+                $retur .="<p class='error'>Kontroll av id som inte finns misslyckades<br>"
+                . $numFel . " stycken fel returnerades istället för förväntat 1</p>";
+            }
+    
+        } catch (Exception $ex) {
+            $retur .= "<p class='error'>Något gick fel, meddelandet säger:<br> {$ex->getMessage()}</p>";
+        }
+    
+        return $retur;
     }
-
-    return $retur;
-}
 
 /**
  * Test för funktionen radera uppgift
